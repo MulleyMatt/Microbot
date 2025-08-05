@@ -1948,6 +1948,7 @@ public class Rs2Bank {
      * @param emptySlotCount
      * @return
      */
+    /// BankLocation.FALADOR_EAST
     public static boolean bankItemsAndWalkBackToOriginalPosition(List<String> itemNames, WorldPoint initialPlayerLocation, int emptySlotCount) {
         return bankItemsAndWalkBackToOriginalPosition(itemNames,false, getNearestBank(), initialPlayerLocation, emptySlotCount, 4);
     }
@@ -1959,6 +1960,7 @@ public class Rs2Bank {
      * @param initialPlayerLocation
      * @return
      */
+    ///  BankLocation.FALADOR_EAST
     public static boolean bankItemsAndWalkBackToOriginalPosition(List<String> itemNames, WorldPoint initialPlayerLocation) {
         return bankItemsAndWalkBackToOriginalPosition(itemNames,false, getNearestBank(), initialPlayerLocation, 0, 4);
     }
