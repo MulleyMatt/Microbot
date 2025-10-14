@@ -32,6 +32,7 @@ import java.lang.annotation.*;
 @Documented
 public @interface PluginDescriptor
 {
+    String Mully = "<html>[<font color=#00FF00>Mully</font>] ";
     String Bee = "<html>[<font color=#FFD700><b>B</b></font>] ";
     String Nate = "<html>[<font color=orange>N</font>] ";
     String Mocrosoft = "<html>[<font color=#b8f704M>M</font>] ";
