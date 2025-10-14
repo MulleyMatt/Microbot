@@ -1,4 +1,4 @@
-package net.runelite.client.plugins.microbot.MullyScripts;
+package net.runelite.client.plugins.microbot.MullyScripts.EdgevilleCrafter;
 
 import com.google.inject.Provides;
 import lombok.Getter;
@@ -7,7 +7,7 @@ import net.runelite.client.eventbus.Subscribe;
 import net.runelite.client.events.ConfigChanged;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.PluginDescriptor;
-import net.runelite.client.plugins.microbot.MullyScripts.Jewelry.Jewelry;
+import net.runelite.client.plugins.microbot.MullyScripts.EdgevilleCrafter.Jewelry.Jewelry;
 import net.runelite.client.ui.overlay.OverlayManager;
 
 import javax.inject.Inject;

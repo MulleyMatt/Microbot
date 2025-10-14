@@ -1,4 +1,4 @@
-package net.runelite.client.plugins.microbot.MullyScripts.Jewelry;
+package net.runelite.client.plugins.microbot.MullyScripts.EdgevilleCrafter.Jewelry;
 
 import lombok.Getter;
 import lombok.RequiredArgsConstructor;

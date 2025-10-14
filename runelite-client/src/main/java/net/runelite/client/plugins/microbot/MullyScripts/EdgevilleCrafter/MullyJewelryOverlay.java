@@ -1,4 +1,4 @@
-package net.runelite.client.plugins.microbot.MullyScripts;
+package net.runelite.client.plugins.microbot.MullyScripts.EdgevilleCrafter;
 
 import net.runelite.client.ui.overlay.OverlayPanel;
 import net.runelite.client.ui.overlay.OverlayPosition;
