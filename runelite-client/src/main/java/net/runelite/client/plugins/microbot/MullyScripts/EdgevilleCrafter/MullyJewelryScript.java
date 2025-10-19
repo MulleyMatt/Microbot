@@ -62,7 +62,9 @@ public class MullyJewelryScript extends Script {
 
                 switch (state) {
                     case BANKING:
-                        boolean isBankOpen = Rs2Bank.isNearBank(BankLocation.EDGEVILLE, 20) ? Rs2Bank.openBank() : Rs2Bank.walkToBankAndUseBank(BankLocation.EDGEVILLE);
+                        boolean isBankOpen = Rs2Bank.isNearBank(BankLocation.EDGEVILLE, 20) ?
+                                Rs2Bank.openBank() :
+                                Rs2Bank.walkToBankAndUseBank(BankLocation.EDGEVILLE);
 
                         if (!isBankOpen || !Rs2Bank.isOpen()) return;
 
