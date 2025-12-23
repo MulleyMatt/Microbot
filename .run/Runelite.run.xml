@@ -5,7 +5,7 @@
     <option name="MAIN_CLASS_NAME" value="net.runelite.client.RuneLite" />
     <module name="client" />
     <option name="PROGRAM_PARAMETERS" value="-developer-mode" />
-    <option name="VM_PARAMETERS" value="-ea -Xmx1024m" />
+    <option name="VM_PARAMETERS" value="-ea -Xmx900m" />
     <method v="2">
       <option name="Make" enabled="true" />
     </method>
