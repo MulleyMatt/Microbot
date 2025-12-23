@@ -694,7 +694,7 @@ public class LootTrackerPlugin extends Plugin
 			queuedLoots.add(lootRecord);
 		}
 
-		eventBus.post(new LootReceived(name, combatLevel, type, items, amount, metadata));
+		eventBus.post(new LootReceived(name, combatLevel, type, items, amount));
 	}
 
 	private Integer getLootWorldId()
