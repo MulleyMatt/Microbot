@@ -2,6 +2,7 @@ package net.runelite.client.plugins.microbot.util.prayer;
 
 import lombok.extern.slf4j.Slf4j;
 import net.runelite.api.MenuAction;
+import net.runelite.api.Prayer;
 import net.runelite.api.Skill;
 import net.runelite.api.annotations.Component;
 import net.runelite.api.gameval.VarbitID;
@@ -485,5 +486,44 @@ public class Rs2Prayer {
     public static boolean isMysticVigourUnlocked() {
         return !(Microbot.getVarbitValue(VarbitID.PRAYER_MYSTIC_VIGOUR_UNLOCKED) == 0) && Microbot.getClient().getRealSkillLevel(Skill.PRAYER) >= 62;
     }
-    
-}
+
+	/**
+	 * Immediately switches or enables the specified prayer on the client thread without blocking or sleeping.
+	 *
+	 * @param prayer the RuneLite prayer to activate
+	 */
+	public static void fastPrayer(Prayer prayer) {
+		if (prayer == null) return;
+		Rs2PrayerEnum rs2Prayer = fromRuneLitePrayer(prayer);
+		if (rs2Prayer != null) {
+			fastPrayer(rs2Prayer);
+		}
+	}
+
+	/**
+	 * Immediately switches or enables the specified prayer on the client thread without blocking or sleeping.
+	 *
+	 * @param prayer the Rs2PrayerEnum to activate
+	 */
+	public static void fastPrayer(Rs2PrayerEnum prayer) {
+		if (prayer == null || isOutOfPrayer()) return;
+		if (isPrayerActive(prayer)) return;
+		invokePrayer(prayer, false);
+	}
+
+	/**
+	 * Converts a RuneLite Prayer enum to its corresponding Rs2PrayerEnum based on active varbit.
+	 *
+	 * @param prayer the RuneLite prayer
+	 * @return the matching Rs2PrayerEnum or null if not found
+	 */
+	public static Rs2PrayerEnum fromRuneLitePrayer(Prayer prayer) {
+		if (prayer == null) return null;
+		for (Rs2PrayerEnum p : Rs2PrayerEnum.values()) {
+			if (p.getVarbit() == prayer.getVarbit()) {
+				return p;
+			}
+		}
+		return null;
+	}
+}
