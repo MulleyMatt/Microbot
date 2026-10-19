@@ -64,6 +64,11 @@ public class ClientThread
 		});
 	}
 
+	public void runOnClientThread(Runnable r)
+	{
+		invoke(r);
+	}
+
 	public boolean isClientThread()
 	{
 		return client.isClientThread();
