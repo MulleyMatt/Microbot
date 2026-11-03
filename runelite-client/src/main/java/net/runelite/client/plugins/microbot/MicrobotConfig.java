@@ -75,6 +75,19 @@ public interface MicrobotConfig extends Config
 		return true;
 	}
 
+	String keyShowInstalledPluginsTab = "showInstalledPluginsTab";
+	@ConfigItem(
+		keyName = keyShowInstalledPluginsTab,
+		name = "Show Installed plugins tab",
+		description = "Show or hide the tab containing all other installed plugins",
+		position = 4,
+		section = generalSection
+	)
+	default boolean showInstalledPluginsTab()
+	{
+		return true;
+	}
+
 	@ConfigSection(
 		name = "Movement",
 		description = "Movement and stamina settings. Plugins may override these, but any changes will be reflected here.",

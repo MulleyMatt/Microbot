@@ -89,6 +89,23 @@ public class MaterialTabGroup extends JPanel
 		add(tab, BorderLayout.NORTH);
 	}
 
+	public void addTab(int index, MaterialTab tab)
+	{
+		tabs.add(index, tab);
+		add(tab, index);
+	}
+
+	public void removeTab(MaterialTab tab)
+	{
+		tabs.remove(tab);
+		remove(tab);
+	}
+
+	public boolean containsTab(MaterialTab tab)
+	{
+		return tabs.contains(tab);
+	}
+
 	/***
 	 * Selects a tab from the group, and sets the display's content to the
 	 * tab's associated content.

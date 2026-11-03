@@ -2992,6 +2992,11 @@ public enum PatchImplementation
 		};
 
 	@Nullable
+	public PatchState getPatchState(int value)
+	{
+		return forVarbitValue(value);
+	}
+
 	abstract PatchState forVarbitValue(int value);
 
 	private final Tab tab;

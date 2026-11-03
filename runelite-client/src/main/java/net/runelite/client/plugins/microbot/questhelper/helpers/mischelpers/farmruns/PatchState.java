@@ -27,7 +27,7 @@ package net.runelite.client.plugins.microbot.questhelper.helpers.mischelpers.far
 import lombok.Value;
 import net.runelite.client.plugins.timetracking.farming.Produce;
 @Value
-class PatchState
+public class PatchState
 {
 	Produce produce;
 	CropState cropState;

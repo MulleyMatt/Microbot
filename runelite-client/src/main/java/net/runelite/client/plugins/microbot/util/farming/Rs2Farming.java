@@ -9,6 +9,9 @@ import net.runelite.client.plugins.microbot.questhelper.helpers.mischelpers.farm
 import net.runelite.client.plugins.microbot.questhelper.helpers.mischelpers.farmruns.FarmingPatch;
 import net.runelite.client.plugins.microbot.questhelper.helpers.mischelpers.farmruns.FarmingWorld;
 import net.runelite.client.plugins.microbot.questhelper.helpers.mischelpers.farmruns.PatchImplementation;
+import net.runelite.client.plugins.microbot.questhelper.helpers.mischelpers.farmruns.PatchState;
+import net.runelite.client.plugins.timetracking.farming.Produce;
+import java.util.Set;
 import net.runelite.client.plugins.microbot.util.player.Rs2Player;
 import net.runelite.client.plugins.timetracking.Tab;
 
@@ -129,7 +132,28 @@ public class Rs2Farming {
         ensureFarmingHandlerInitialized();
         
         return Microbot.getClientThread().runOnClientThreadOptional(() -> {
-            return farmingHandler.predictPatch(patch);
+            WorldPoint playerLoc = Rs2Player.getWorldLocation();
+            if (playerLoc != null && patch != null && patch.getLocation() != null
+                    && playerLoc.distanceTo(patch.getLocation()) <= 32 && patch.getImplementation() != null) {
+                int varbitValue = Microbot.getClient().getVarbitValue(patch.getVarbit());
+                PatchState liveState = patch.getImplementation().getPatchState(varbitValue);
+                if (liveState != null) {
+                    if (liveState.getCropState() == CropState.EMPTY || liveState.getProduce() == Produce.WEEDS) {
+                        return CropState.EMPTY;
+                    }
+                    if (liveState.getCropState() == CropState.HARVESTABLE) {
+                        return CropState.HARVESTABLE;
+                    }
+                    if (liveState.getCropState() == CropState.DEAD) {
+                        return CropState.DEAD;
+                    }
+                    if (liveState.getCropState() == CropState.DISEASED) {
+                        return CropState.DISEASED;
+                    }
+                    return CropState.GROWING;
+                }
+            }
+            return farmingHandler != null ? farmingHandler.predictPatch(patch) : null;
         }).orElse(null);
     }
 
@@ -281,7 +305,7 @@ public class Rs2Farming {
                     .flatMap(java.util.Set::stream)
                     .filter(patch -> patch.getVarbit() == varbit && 
                                    patch.getRegion() != null && 
-                                   regionName.equals(patch.getRegion().getName()))
+                                   matchesRegionName(regionName, patch.getRegion().getName()))
                     .findFirst();
         }).orElse(Optional.empty());
     }
@@ -291,6 +315,49 @@ public class Rs2Farming {
      *
      * @param patches List of patches to log
      */
+    public static Optional<FarmingPatch> getHerbPatchAt(WorldPoint location) {
+        if (location == null) {
+            return Optional.empty();
+        }
+        return Microbot.getClientThread().runOnClientThreadOptional(() -> {
+            FarmingWorld world = getFarmingWorld();
+            if (world == null || world.getTabs() == null) {
+                return Optional.<FarmingPatch>empty();
+            }
+            Set<FarmingPatch> herbPatches = world.getTabs().get(Tab.HERB);
+            if (herbPatches == null) {
+                return Optional.<FarmingPatch>empty();
+            }
+            return herbPatches.stream()
+                    .filter(patch -> location.equals(patch.getLocation()))
+                    .findFirst();
+        }).orElse(Optional.empty());
+    }
+
+    private static boolean matchesRegionName(String inputName, String farmingRegionName) {
+        if (inputName == null || farmingRegionName == null) {
+            return false;
+        }
+        if (inputName.equalsIgnoreCase(farmingRegionName)) {
+            return true;
+        }
+        String a = inputName.toLowerCase();
+        String b = farmingRegionName.toLowerCase();
+        if ((a.contains("hosidius") || a.contains("kourend")) && (b.contains("hosidius") || b.contains("kourend"))) {
+            return true;
+        }
+        if ((a.contains("phasmatys") || a.contains("morytania")) && (b.contains("phasmatys") || b.contains("morytania"))) {
+            return true;
+        }
+        if ((a.contains("varlamore") || a.contains("fortis")) && (b.contains("varlamore") || b.contains("fortis"))) {
+            return true;
+        }
+        if (a.contains("harmony") && b.contains("harmony")) {
+            return true;
+        }
+        return false;
+    }
+
     public static void logPatchStates(List<FarmingPatch> patches) {
         patches.forEach(patch -> {
             CropState state = predictPatchState(patch);

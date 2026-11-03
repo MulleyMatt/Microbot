@@ -1420,10 +1420,10 @@ public class Rs2Inventory {
      */
     public static Rectangle itemBounds(Rs2ItemModel rs2Item) {
         Widget inventory = getInventory();
-        if (inventory == null) return null;
+        if (rs2Item == null || inventory == null || inventory.getDynamicChildren() == null) return null;
 
         return Arrays.stream(inventory.getDynamicChildren())
-                .filter(widget -> widget.getIndex() == rs2Item.getSlot())
+                .filter(widget -> widget != null && widget.getIndex() == rs2Item.getSlot())
                 .findFirst().map(Widget::getBounds).orElse(null);
     }
 

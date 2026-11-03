@@ -8,7 +8,10 @@ import ch.qos.logback.core.AppenderBase;
 import ch.qos.logback.core.Context;
 import ch.qos.logback.core.filter.Filter;
 import ch.qos.logback.core.spi.FilterReply;
+import java.util.Set;
+import java.util.concurrent.CopyOnWriteArraySet;
 import java.util.function.BooleanSupplier;
+import java.util.function.Predicate;
 import net.runelite.api.ChatMessageType;
 import net.runelite.client.util.ResetResistantAttachment;
 
@@ -19,11 +22,13 @@ public class GameChatAppender extends AppenderBase<ILoggingEvent> {
     private static volatile boolean loggingEnabled = true;
     private static volatile Level minimumLevel = Level.WARN;
     private static volatile boolean onlyMicrobotLogging = true;
+    private static final Set<Predicate<ILoggingEvent>> customFilters = new CopyOnWriteArraySet<>();
 
     public GameChatAppender(String pattern) {
         // Order matters! Level filter should run first to deny based on log level
         addFilter(new GameChatLevelFilter());
         addFilter(new OnlyMicrobotLoggingFilter());
+        addFilter(new CustomLoggingFilter());
         layout.setPattern(pattern);
     }
 
@@ -74,6 +79,32 @@ public class GameChatAppender extends AppenderBase<ILoggingEvent> {
         onlyMicrobotLogging = microbotOnly;
     }
 
+    /**
+     * Registers a custom predicate filter for game chat log events.
+     * If the predicate returns true, the event is denied and dropped.
+     */
+    public static void addCustomFilter(Predicate<ILoggingEvent> filter) {
+        if (filter != null) {
+            customFilters.add(filter);
+        }
+    }
+
+    /**
+     * Removes a previously registered custom predicate filter.
+     */
+    public static void removeCustomFilter(Predicate<ILoggingEvent> filter) {
+        if (filter != null) {
+            customFilters.remove(filter);
+        }
+    }
+
+    /**
+     * Clears all registered custom filters.
+     */
+    public static void clearCustomFilters() {
+        customFilters.clear();
+    }
+
     @Override
     protected void append(ILoggingEvent event) {
         if (!Microbot.isLoggedIn()) return;
@@ -116,6 +147,18 @@ public class GameChatAppender extends AppenderBase<ILoggingEvent> {
             
             // Otherwise, only accept microbot logs
             return event.getLoggerName().startsWith("net.runelite.client.plugins.microbot") ? FilterReply.NEUTRAL : FilterReply.DENY;
+        }
+    }
+
+    private static class CustomLoggingFilter extends Filter<ILoggingEvent> {
+        @Override
+        public FilterReply decide(ILoggingEvent event) {
+            for (Predicate<ILoggingEvent> filter : customFilters) {
+                if (filter.test(event)) {
+                    return FilterReply.DENY;
+                }
+            }
+            return FilterReply.NEUTRAL;
         }
     }
 }

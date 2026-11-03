@@ -132,7 +132,7 @@ public class MicrobotPluginListPanel extends MicrobotPluginPanel {
 
         @Override
         public boolean isBuiltIn(MicrobotPluginListItem row) {
-            return row.isNoSwitch();
+            return row.isNoSwitch() && !isUserBuiltPlugin(row.getPluginConfig());
         }
 
         @Override
@@ -171,6 +171,14 @@ public class MicrobotPluginListPanel extends MicrobotPluginPanel {
 
     private final IconTextField searchBar;
     private final JScrollPane scrollPane;
+    public enum PluginListMode {
+        USER_PLUGINS,
+        INSTALLED_PLUGINS
+    }
+
+    @Getter
+    private PluginListMode mode = PluginListMode.INSTALLED_PLUGINS;
+
     private final MicrobotFixedWidthPanel mainPanel;
     private List<MicrobotPluginListItem> pluginList;
     private final Set<String> disabledOnStartUp = new HashSet<>();
@@ -725,6 +733,75 @@ public class MicrobotPluginListPanel extends MicrobotPluginPanel {
         muxer.pushState(this);
     }
 
+    public void setMode(PluginListMode mode) {
+        if (this.mode != mode) {
+            this.mode = mode;
+            setFilter(Filter.ALL);
+            kept.clear();
+            shownRows = Collections.emptyList();
+            searchBar.setText("");
+            updateList();
+            scrollPane.getVerticalScrollBar().setValue(0);
+        }
+    }
+
+    public void resetToRoot() {
+        muxer.pushState(this);
+    }
+
+    public static boolean isUserBuiltPlugin(MicrobotPluginConfigurationDescriptor descriptor) {
+        if (descriptor == null) {
+            return false;
+        }
+        Plugin plugin = descriptor.getPlugin();
+        if (plugin != null && isUserBuiltPlugin(plugin)) {
+            return true;
+        }
+        if (descriptor.getTags() != null) {
+            for (String tag : descriptor.getTags()) {
+                if ("user".equalsIgnoreCase(tag) || "userplugin".equalsIgnoreCase(tag)) {
+                    return true;
+                }
+            }
+        }
+        return isUserBuiltPluginName(descriptor.getName());
+    }
+
+    public static boolean isUserBuiltPlugin(Plugin plugin) {
+        if (plugin == null) {
+            return false;
+        }
+        String simpleName = plugin.getClass().getSimpleName();
+        if ("AgentServerPlugin".equals(simpleName) || "HerbRunPlugin".equals(simpleName) || "RedwoodPlugin".equals(simpleName) || "MuspahPlugin".equals(simpleName) || "CacheWarningFilterPlugin".equals(simpleName)) {
+            return true;
+        }
+        PluginDescriptor descriptor = plugin.getClass().getAnnotation(PluginDescriptor.class);
+        if (descriptor != null && descriptor.tags() != null) {
+            for (String tag : descriptor.tags()) {
+                if ("user".equalsIgnoreCase(tag) || "userplugin".equalsIgnoreCase(tag)) {
+                    return true;
+                }
+                if ("helper".equalsIgnoreCase(tag) && !"QuestHelperPlugin".equals(simpleName)) {
+                    return true;
+                }
+            }
+        }
+        return isUserBuiltPluginName(plugin.getName());
+    }
+
+    public static boolean isUserBuiltPluginName(String name) {
+        if (name == null) {
+            return false;
+        }
+        String clean = Text.removeTags(name).replace("[M]", "").trim();
+        return clean.equalsIgnoreCase("Agent Server")
+                || clean.equalsIgnoreCase("Herb Run Helper")
+                || clean.equalsIgnoreCase("Redwood Woodcutting Helper")
+                || clean.equalsIgnoreCase("Redwood Helper")
+                || clean.equalsIgnoreCase("Phantom Muspah Helper")
+                || clean.equalsIgnoreCase("Cache Warning Filter");
+    }
+
     private void updateList() {
         // Typing, a sort or a chip can arrive before the first rebuild at startup.
         if (pluginList == null) {
@@ -735,7 +812,19 @@ public class MicrobotPluginListPanel extends MicrobotPluginPanel {
             MicrobotPluginListOrder.keepSwitchedOff(kept, shownRows, MicrobotPluginListItem::isOn);
         }
 
-        Result<MicrobotPluginListItem> result = MicrobotPluginListOrder.order(pluginList, query, sort, filter, ROWS, kept);
+        boolean installedTabHidden = "false".equalsIgnoreCase(
+                configManager.getConfiguration(RUNELITE_GROUP_NAME, MicrobotConfig.keyShowInstalledPluginsTab));
+        List<MicrobotPluginListItem> currentModeList = pluginList.stream()
+                .filter(item -> {
+                    boolean isUser = isUserBuiltPlugin(item.getPluginConfig());
+                    if (mode == PluginListMode.USER_PLUGINS) {
+                        return isUser || (installedTabHidden && ROWS.isBuiltIn(item));
+                    }
+                    return !isUser;
+                })
+                .collect(Collectors.toList());
+
+        Result<MicrobotPluginListItem> result = MicrobotPluginListOrder.order(currentModeList, query, sort, filter, ROWS, kept);
         pluginList.forEach(row -> row.setDimmed(kept.contains(row)));
 
         onChip.setSelected(filter == Filter.ON);
@@ -749,13 +838,13 @@ public class MicrobotPluginListPanel extends MicrobotPluginPanel {
         countLabel.setText(result.getShown() + " of " + result.getTotal() + " · ");
         countPanel.setVisible(filtering);
 
-        List<MicrobotPluginManifest> hubHits = isSafeMode() ? Collections.emptyList()
+        List<MicrobotPluginManifest> hubHits = (mode != PluginListMode.INSTALLED_PLUGINS || isSafeMode()) ? Collections.emptyList()
                 : MicrobotPluginHubOrder.hubMatches(microbotPluginManager.getManifestMap().values(), query,
                         name -> installedNames.contains(name.toLowerCase(Locale.ROOT)),
                         manifest -> microbotPluginManager.getPluginHealth(manifest, manifest.getVersion()).isBlocking(),
                         HUB_RESULTS);
         // First run: only built-ins and the Microbot settings row, so there is nothing for the chips to count.
-        boolean hasPlugins = pluginList.stream().anyMatch(row -> !row.isNoSwitch());
+        boolean hasPlugins = currentModeList.stream().anyMatch(row -> !ROWS.isBuiltIn(row));
         chipRow.setVisible(hasPlugins && fixShown);
         onChip.setVisible(hasPlugins);
         onChipSeparator.setVisible(hasPlugins);
@@ -764,7 +853,7 @@ public class MicrobotPluginListPanel extends MicrobotPluginPanel {
 
         List<Component> children = new ArrayList<>();
         // It names rows the search or chip may be hiding, so it waits until they are cleared.
-        if (healthBanner.hasLinks() && !filtering) {
+        if (mode == PluginListMode.INSTALLED_PLUGINS && healthBanner.hasLinks() && !filtering) {
             children.add(healthBanner);
         }
         children.addAll(result.getPinned());

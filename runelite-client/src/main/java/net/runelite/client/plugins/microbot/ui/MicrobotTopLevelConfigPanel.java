@@ -2,8 +2,14 @@ package net.runelite.client.plugins.microbot.ui;
 
 import net.runelite.client.RuneLiteProperties;
 import net.runelite.client.eventbus.EventBus;
+import net.runelite.client.config.ConfigManager;
+import net.runelite.client.eventbus.Subscribe;
+import net.runelite.client.events.ConfigChanged;
 import net.runelite.client.plugins.Plugin;
 import net.runelite.client.plugins.config.TopLevelConfigPanel;
+import net.runelite.client.plugins.microbot.MicrobotConfig;
+import javax.swing.event.PopupMenuEvent;
+import javax.swing.event.PopupMenuListener;
 import net.runelite.client.plugins.microbot.recovery.StartupRecovery;
 import net.runelite.client.ui.ClientUI;
 import net.runelite.client.ui.ColorScheme;
@@ -33,7 +39,11 @@ public class MicrobotTopLevelConfigPanel extends PluginPanel {
     private final EventBus eventBus;
     private final MicrobotCloudPanel cloudPanel;
     private final MicrobotHelpMenu helpMenu;
+    private final MicrobotConfig microbotConfig;
+    private final ConfigManager configManager;
     private final MicrobotPluginListPanel pluginListPanel;
+    private final MaterialTab myPluginsTab;
+    private final MaterialTab installedPluginsTab;
     private final MaterialTab pluginListPanelTab;
     private final MaterialTab profilePanelTab;
     private final MaterialTab pluginHubTab;
@@ -52,7 +62,24 @@ public class MicrobotTopLevelConfigPanel extends PluginPanel {
      * @return ImageIcon {@link ImageIcon} with rendered text
      */
     private ImageIcon createTextIcon(String text, Color textColor, Color backgroundColor, int width, int height) {
-        BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_INT_ARGB);
+        BufferedImage dummy = new BufferedImage(1, 1, BufferedImage.TYPE_INT_ARGB);
+        Graphics2D dummyG = dummy.createGraphics();
+        Font font = FontManager.getRunescapeBoldFont();
+        dummyG.setFont(font);
+        FontMetrics fm = dummyG.getFontMetrics();
+        int textWidth = fm.stringWidth(text);
+
+        if (width > 0 && textWidth > width) {
+            float newSize = Math.max(12f, font.getSize2D() * ((float) width / (float) textWidth));
+            font = font.deriveFont(newSize);
+            dummyG.setFont(font);
+            fm = dummyG.getFontMetrics();
+            textWidth = fm.stringWidth(text);
+        }
+        dummyG.dispose();
+
+        int finalWidth = Math.max(width, textWidth);
+        BufferedImage image = new BufferedImage(finalWidth, height, BufferedImage.TYPE_INT_ARGB);
         Graphics2D g2d = image.createGraphics();
 
         // Enable antialiasing for smoother text
@@ -62,19 +89,17 @@ public class MicrobotTopLevelConfigPanel extends PluginPanel {
         // Set background (optional, can be transparent)
         if (backgroundColor != null) {
             g2d.setColor(backgroundColor);
-            g2d.fillRect(0, 0, width, height);
+            g2d.fillRect(0, 0, finalWidth, height);
         }
 
         // Set font and text color
-        g2d.setFont(FontManager.getRunescapeBoldFont());
+        g2d.setFont(font);
         g2d.setColor(textColor);
 
         // Calculate text position to center it
-        FontMetrics fm = g2d.getFontMetrics();
-        int textWidth = fm.stringWidth(text);
         int textHeight = fm.getAscent();
 
-        int x = (width - textWidth) / 2;
+        int x = (finalWidth - textWidth) / 2;
         int y = (height - textHeight) / 2 + textHeight;
 
         g2d.drawString(text, x, y);
@@ -90,17 +115,21 @@ public class MicrobotTopLevelConfigPanel extends PluginPanel {
             MicrobotProfilePanel profilePanel,
             Provider<MicrobotPluginHubPanel> microbotPluginHubPanelProvider,
             MicrobotCloudPanel cloudPanel,
-            MicrobotHelpMenu helpMenu
+            MicrobotHelpMenu helpMenu,
+            MicrobotConfig microbotConfig,
+            ConfigManager configManager
     ) {
         super(false);
 
         this.eventBus = eventBus;
         this.cloudPanel = cloudPanel;
         this.helpMenu = helpMenu;
+        this.microbotConfig = microbotConfig;
+        this.configManager = configManager;
 
         tabGroup = new MaterialTabGroup();
-        tabGroup.setLayout(new GridLayout(1, 0, 7, 7));
-        tabGroup.setBorder(new EmptyBorder(10, 10, 0, 10));
+        tabGroup.setLayout(new GridLayout(1, 0, 4, 4));
+        tabGroup.setBorder(new EmptyBorder(8, 6, 0, 6));
 
         content = new JPanel();
         layout = new CardLayout();
@@ -114,10 +143,34 @@ public class MicrobotTopLevelConfigPanel extends PluginPanel {
         this.pluginListPanel = pluginListPanel;
 
         // Create text-based icons instead of using image files for better clarity
-        ImageIcon installedIcon = createTextIcon("Installed", Color.YELLOW, null, 80, 32);
-        ImageIcon hubIcon = createTextIcon("Plugin Hub", Color.YELLOW, null, 80, 32);
+        ImageIcon myPluginsIcon = createTextIcon("My Plugins", Color.YELLOW, null, 50, 28);
+        ImageIcon installedIcon = createTextIcon("Installed", Color.YELLOW, null, 50, 28);
+        ImageIcon hubIcon = createTextIcon("Plugin Hub", Color.YELLOW, null, 50, 28);
 
-        pluginListPanelTab = addTab(pluginListPanel.getMuxer(), installedIcon, "Installed Microbot Plugins");
+        myPluginsTab = addTab(pluginListPanel.getMuxer(), myPluginsIcon, "My Plugins");
+        myPluginsTab.setOnSelectEvent(() -> {
+            pluginListPanel.resetToRoot();
+            pluginListPanel.setMode(MicrobotPluginListPanel.PluginListMode.USER_PLUGINS);
+            switchTo("My Plugins", pluginListPanel.getMuxer(), false);
+            return true;
+        });
+        pluginListPanelTab = myPluginsTab;
+
+        installedPluginsTab = new MaterialTab(installedIcon, tabGroup, null);
+        installedPluginsTab.setToolTipText("Installed Microbot Plugins");
+        installedPluginsTab.setOnSelectEvent(() -> {
+            pluginListPanel.resetToRoot();
+            pluginListPanel.setMode(MicrobotPluginListPanel.PluginListMode.INSTALLED_PLUGINS);
+            switchTo("My Plugins", pluginListPanel.getMuxer(), false);
+            return true;
+        });
+
+        setupTabPopupMenus();
+
+        if (microbotConfig.showInstalledPluginsTab()) {
+            tabGroup.addTab(installedPluginsTab);
+        }
+
         profilePanelTab = addTab(profilePanel, "profile_icon.png", "Profiles");
         pluginHubTab = addTab(microbotPluginHubPanelProvider, hubIcon, "Microbot Hub");
         pluginListPanel.setOpenHub(query -> {
@@ -125,7 +178,72 @@ public class MicrobotTopLevelConfigPanel extends PluginPanel {
             tabGroup.select(pluginHubTab);
         });
 
-        tabGroup.select(pluginListPanelTab);
+        pluginListPanel.setMode(MicrobotPluginListPanel.PluginListMode.USER_PLUGINS);
+        tabGroup.select(myPluginsTab);
+
+        eventBus.register(this);
+    }
+
+    private void setupTabPopupMenus() {
+        JPopupMenu installedMenu = new JPopupMenu();
+        JMenuItem hideItem = new JMenuItem("Hide Installed Plugins Tab");
+        hideItem.addActionListener(e -> {
+            configManager.setConfiguration(MicrobotConfig.configGroup, MicrobotConfig.keyShowInstalledPluginsTab, false);
+        });
+        installedMenu.add(hideItem);
+        installedPluginsTab.setComponentPopupMenu(installedMenu);
+
+        JPopupMenu myPluginsMenu = new JPopupMenu();
+        JMenuItem toggleItem = new JMenuItem("Show Installed Plugins Tab");
+        myPluginsMenu.addPopupMenuListener(new PopupMenuListener() {
+            @Override
+            public void popupMenuWillBecomeVisible(PopupMenuEvent e) {
+                boolean shown = microbotConfig.showInstalledPluginsTab();
+                toggleItem.setText(shown ? "Hide Installed Plugins Tab" : "Show Installed Plugins Tab");
+            }
+
+            @Override
+            public void popupMenuWillBecomeInvisible(PopupMenuEvent e) {}
+
+            @Override
+            public void popupMenuCanceled(PopupMenuEvent e) {}
+        });
+        toggleItem.addActionListener(e -> {
+            boolean current = microbotConfig.showInstalledPluginsTab();
+            configManager.setConfiguration(MicrobotConfig.configGroup, MicrobotConfig.keyShowInstalledPluginsTab, !current);
+        });
+        myPluginsMenu.add(toggleItem);
+        myPluginsTab.setComponentPopupMenu(myPluginsMenu);
+    }
+
+    @Subscribe
+    public void onConfigChanged(ConfigChanged event) {
+        if (!MicrobotConfig.configGroup.equals(event.getGroup())) {
+            return;
+        }
+        if (MicrobotConfig.keyShowInstalledPluginsTab.equals(event.getKey())) {
+            SwingUtilities.invokeLater(this::updateInstalledTabVisibility);
+        }
+    }
+
+    private void updateInstalledTabVisibility() {
+        boolean show = microbotConfig.showInstalledPluginsTab();
+        boolean currentlyAdded = tabGroup.containsTab(installedPluginsTab);
+
+        if (show && !currentlyAdded) {
+            tabGroup.addTab(1, installedPluginsTab);
+            tabGroup.revalidate();
+            tabGroup.repaint();
+            pluginListPanel.refresh();
+        } else if (!show && currentlyAdded) {
+            if (installedPluginsTab.isSelected()) {
+                tabGroup.select(myPluginsTab);
+            }
+            tabGroup.removeTab(installedPluginsTab);
+            tabGroup.revalidate();
+            tabGroup.repaint();
+            pluginListPanel.refresh();
+        }
     }
 
     private JPanel buildVersionFooter() {
@@ -239,8 +357,10 @@ public class MicrobotTopLevelConfigPanel extends PluginPanel {
     private void switchTo(String cardName, MicrobotPluginPanel panel, boolean removeOnTabChange) {
         boolean doRemove = this.removeOnTabChange;
         MicrobotPluginPanel prevPanel = current;
-        if (active) {
-            prevPanel.onDeactivate();
+        if (active && prevPanel != panel) {
+            if (prevPanel != null) {
+                prevPanel.onDeactivate();
+            }
             panel.onActivate();
         }
 
@@ -249,7 +369,7 @@ public class MicrobotTopLevelConfigPanel extends PluginPanel {
 
         layout.show(content, cardName);
 
-        if (doRemove) {
+        if (doRemove && prevPanel != null) {
             content.remove(prevPanel.getWrappedPanel());
             eventBus.unregister(prevPanel);
         }
@@ -289,17 +409,38 @@ public class MicrobotTopLevelConfigPanel extends PluginPanel {
     }
 
     public void openConfigurationPanel(String name) {
-        tabGroup.select(pluginListPanelTab);
+        if (MicrobotPluginListPanel.isUserBuiltPluginName(name)) {
+            tabGroup.select(myPluginsTab);
+            pluginListPanel.setMode(MicrobotPluginListPanel.PluginListMode.USER_PLUGINS);
+        } else {
+            if (microbotConfig.showInstalledPluginsTab() && tabGroup.containsTab(installedPluginsTab)) {
+                tabGroup.select(installedPluginsTab);
+                pluginListPanel.setMode(MicrobotPluginListPanel.PluginListMode.INSTALLED_PLUGINS);
+            } else {
+                tabGroup.select(myPluginsTab);
+            }
+        }
         pluginListPanel.openConfigurationPanel(name);
     }
 
     public void openConfigurationPanel(Plugin plugin) {
-        tabGroup.select(pluginListPanelTab);
+        if (MicrobotPluginListPanel.isUserBuiltPlugin(plugin)) {
+            tabGroup.select(myPluginsTab);
+            pluginListPanel.setMode(MicrobotPluginListPanel.PluginListMode.USER_PLUGINS);
+        } else {
+            if (microbotConfig.showInstalledPluginsTab() && tabGroup.containsTab(installedPluginsTab)) {
+                tabGroup.select(installedPluginsTab);
+                pluginListPanel.setMode(MicrobotPluginListPanel.PluginListMode.INSTALLED_PLUGINS);
+            } else {
+                tabGroup.select(myPluginsTab);
+            }
+        }
         pluginListPanel.openConfigurationPanel(plugin);
     }
 
     public void openWithFilter(String filter) {
-        tabGroup.select(pluginListPanelTab);
+        tabGroup.select(myPluginsTab);
+        pluginListPanel.setMode(MicrobotPluginListPanel.PluginListMode.USER_PLUGINS);
         pluginListPanel.openWithFilter(filter);
     }
 }
