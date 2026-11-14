@@ -26,7 +26,8 @@ import net.runelite.client.ui.overlay.OverlayManager;
         name = PluginDescriptor.Mocrosoft + "Cache Warning Filter",
         description = "Hides 'Mismatch in overlaid cache archive hash' warnings from the chat",
         tags = {"cache", "filter", "chat", "microbot", "warning", "helper"},
-        enabledByDefault = false
+        enabledByDefault = true,
+        alwaysOn = true
 )
 @Slf4j
 public class CacheWarningFilterPlugin extends Plugin {

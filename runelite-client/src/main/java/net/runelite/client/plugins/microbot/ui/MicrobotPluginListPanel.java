@@ -750,7 +750,7 @@ public class MicrobotPluginListPanel extends MicrobotPluginPanel {
     }
 
     public static boolean isUserBuiltPlugin(MicrobotPluginConfigurationDescriptor descriptor) {
-        if (descriptor == null) {
+        if (descriptor == null || descriptor.getInternalPluginHubName() != null) {
             return false;
         }
         Plugin plugin = descriptor.getPlugin();
@@ -779,9 +779,6 @@ public class MicrobotPluginListPanel extends MicrobotPluginPanel {
         if (descriptor != null && descriptor.tags() != null) {
             for (String tag : descriptor.tags()) {
                 if ("user".equalsIgnoreCase(tag) || "userplugin".equalsIgnoreCase(tag)) {
-                    return true;
-                }
-                if ("helper".equalsIgnoreCase(tag) && !"QuestHelperPlugin".equals(simpleName)) {
                     return true;
                 }
             }
