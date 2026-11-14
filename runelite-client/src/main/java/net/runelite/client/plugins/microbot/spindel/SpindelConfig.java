@@ -540,9 +540,9 @@ public interface SpindelConfig extends Config
     }
 
     @ConfigItem(
-            name = "Sound Alerts (PKer / Web / Style Switch)",
+            name = "Sound Alerts (PKer / Web)",
             keyName = "soundAlerts",
-            description = "Plays an audio alert when a PKer enters, when standing on a web, or when Spindel switches attack styles",
+            description = "Plays an audio alert when a PKer enters or when standing on a web",
             position = 3,
             section = displayAudioSection
     )

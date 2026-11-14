@@ -127,6 +127,7 @@ public class SpindelPlugin extends Plugin
     public static final int SEED_POD_COOLDOWN_TICKS = 3;
     public static final int LOW_PRAYER_ALERT_COOLDOWN_TICKS = 8;
     public static final int PKER_ALERT_COOLDOWN_TICKS = 5;
+    public static final int WEB_ALERT_COOLDOWN_TICKS = 5;
 
     @Inject
     private Client client;
@@ -189,6 +190,7 @@ public class SpindelPlugin extends Plugin
     private int lastSeedPodInvokeTick = -SEED_POD_COOLDOWN_TICKS;
     private int lastLowPrayerAlertTick = -LOW_PRAYER_ALERT_COOLDOWN_TICKS;
     private int lastPkerAlertTick = -PKER_ALERT_COOLDOWN_TICKS;
+    private int lastWebAlertTick = -WEB_ALERT_COOLDOWN_TICKS;
 
     @Getter
     private boolean seedPodTriggeredThisEncounter = false;
@@ -282,6 +284,7 @@ public class SpindelPlugin extends Plugin
         lastSeedPodInvokeTick = -SEED_POD_COOLDOWN_TICKS;
         lastLowPrayerAlertTick = -LOW_PRAYER_ALERT_COOLDOWN_TICKS;
         lastPkerAlertTick = -PKER_ALERT_COOLDOWN_TICKS;
+        lastWebAlertTick = -WEB_ALERT_COOLDOWN_TICKS;
         seedPodTriggeredThisEncounter = false;
         postKillPrayerReminder = false;
         activeWebObjects.clear();
@@ -620,7 +623,7 @@ public class SpindelPlugin extends Plugin
 
         spiderlings.removeIf(npc -> npc == null || npc.isDead());
 
-        // 1. Always scan for PKers if inside Spindel's cave
+        // 1. Always scan for PKers and Web hazards if inside Spindel's cave
         if (isInSpindelCave())
         {
             updateThreatPlayersInCave();
@@ -632,11 +635,13 @@ public class SpindelPlugin extends Plugin
             {
                 seedPodTriggeredThisEncounter = false;
             }
+            handleWebDangerAlert();
         }
         else
         {
             detectedThreatPlayers.clear();
             seedPodTriggeredThisEncounter = false;
+            lastWebAlertTick = -WEB_ALERT_COOLDOWN_TICKS;
         }
 
         // 2. Boss tick & prayer handling
@@ -799,11 +804,6 @@ public class SpindelPlugin extends Plugin
         RotationState next = computeNextRotationState(currentPhase, attacksInCurrentPhase, animId);
         this.currentPhase = next.getPhase();
         this.attacksInCurrentPhase = next.getAttacksInPhase();
-
-        if (next.isPhaseSwitched() && config != null && config.soundAlerts())
-        {
-            Rs2SoundAlert.triggerAlert(config.soundVolume());
-        }
     }
 
     // =========================================================================
@@ -1239,6 +1239,26 @@ public class SpindelPlugin extends Plugin
         {
             Rs2SoundAlert.triggerAlert(config.soundVolume());
             lastLowPrayerAlertTick = totalTicks;
+        }
+    }
+
+    private void handleWebDangerAlert()
+    {
+        if (config == null || client == null)
+        {
+            return;
+        }
+
+        if (!isPlayerInWebDanger())
+        {
+            lastWebAlertTick = -WEB_ALERT_COOLDOWN_TICKS;
+            return;
+        }
+
+        if (config.soundAlerts() && totalTicks - lastWebAlertTick >= WEB_ALERT_COOLDOWN_TICKS)
+        {
+            Rs2SoundAlert.triggerAlert(config.soundVolume());
+            lastWebAlertTick = totalTicks;
         }
     }
 }
