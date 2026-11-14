@@ -22,6 +22,11 @@ Use this skill to quickly verify and debug plugin logic (supply math, state tran
 .\gradlew.bat :client:runUnitTests --tests net.runelite.client.plugins.microbot.<feature>.<Feature>Test
 ```
 
+### Run All Custom Helper Plugins & UI Tests Together
+```powershell
+.\gradlew.bat :client:runUnitTests --tests "net.runelite.client.plugins.microbot.ui.MicrobotPluginListPanelModeTest" --tests "net.runelite.client.plugins.microbot.herbrun.*" --tests "net.runelite.client.plugins.microbot.redwood.*" --tests "net.runelite.client.plugins.microbot.muspah.*" --tests "net.runelite.client.plugins.microbot.mta.*" --tests "net.runelite.client.plugins.microbot.spindel.*" --tests "net.runelite.client.plugins.microbot.wildyslayer.*" --tests "net.runelite.client.plugins.microbot.barbarianfishing.*" --tests "net.runelite.client.plugins.microbot.cachewarningfilter.*"
+```
+
 ### Run a Single Test Method
 ```powershell
 .\gradlew.bat :client:runUnitTests --tests net.runelite.client.plugins.microbot.<feature>.<Feature>Test.<testMethodName>
@@ -44,6 +49,7 @@ Every helper plugin should have a corresponding test class under:
 
 ## 3. Mocking Patterns (Zero-Client Testing)
 
+### A. Container & Supply Math Mocking
 Use Mockito to simulate game containers without needing a live game instance:
 
 ```java
@@ -70,6 +76,46 @@ public class MyPluginSupplyTest {
         assertEquals(3, missing);
     }
 }
+```
+
+### B. Left-Click `MenuEntry` Swapping (`onPostMenuSort`)
+Mock `Menu`, inventory `Widget` (`InterfaceID.INVENTORY << 16`), and `MenuEntry[]` to assert that `Drop` moves to `entries[entries.length - 1]` and upgrades `MenuAction.CC_OP_LOW_PRIORITY` to `MenuAction.CC_OP` only for target items:
+
+```java
+int inventoryWidgetId = InterfaceID.INVENTORY << 16;
+Menu root = mock(Menu.class);
+Widget itemWidget = mock(Widget.class);
+when(itemWidget.getId()).thenReturn(inventoryWidgetId);
+when(itemWidget.getItemId()).thenReturn(ItemID.BRUT_SPAWNING_TROUT);
+
+MenuEntry cancel = mock(MenuEntry.class);
+when(cancel.getOption()).thenReturn("Cancel");
+MenuEntry drop = mock(MenuEntry.class);
+when(drop.getOption()).thenReturn("Drop");
+when(drop.getWidget()).thenReturn(itemWidget);
+when(drop.getItemId()).thenReturn(ItemID.BRUT_SPAWNING_TROUT);
+when(drop.getType()).thenReturn(MenuAction.CC_OP_LOW_PRIORITY);
+MenuEntry use = mock(MenuEntry.class);
+when(use.getOption()).thenReturn("Use");
+when(use.getWidget()).thenReturn(itemWidget);
+
+MenuEntry[] entries = new MenuEntry[]{cancel, drop, use};
+when(root.getMenuEntries()).thenReturn(entries);
+
+assertTrue(plugin.swapDropToTopIfLeapingFish(root));
+assertSame(drop, entries[entries.length - 1]);
+verify(drop).setType(MenuAction.CC_OP);
+verify(root).setMenuEntries(entries);
+```
+
+### C. Pure Static Decision Helpers (Anti-PK, Auto-Prayer, Auto-Thrall, Alerts)
+Extract tick, varbit, and combat-bracket checks into package-private or `public static` pure helpers (like `WildySlayerPlugin.isThreatPlayer(...)`, `WildySlayerPlugin.shouldTriggerSeedPod(...)`, and `MuspahPlugin.shouldAttemptThrallCast(...)`) so edge cases can be tested exhaustively without mocking `Client`:
+
+```java
+assertTrue(WildySlayerPlugin.isThreatPlayer(
+        100, 125, 25, false, false, true, false, WildySlayerConfig.PkerDetectionMode.COMBAT_BRACKET));
+assertFalse(WildySlayerPlugin.shouldTriggerSeedPod(
+        true, true, 31, 30, false, true, 10, 0)); // Above wildy 30
 ```
 
 ---

@@ -109,3 +109,33 @@ This reference catalogs verified game object IDs, widget IDs, and gotchas discov
 - **Client-Thread Safe Inventory Teleport**:
   - Never call `Rs2Inventory.interact(...)` on the client thread because `Rs2Tab.switchTo(InterfaceTab.INVENTORY)` calls `sleepUntil(...)`. Instead, invoke `MenuAction.CC_OP` directly on `InterfaceID.Inventory.ITEMS` (`param0 = slot`, `identifier = 2` for `"Commune"` on `ItemID.MM2_ROYAL_SEED_POD`) via `Microbot.doInvoke`.
 
+---
+
+## 7. Barbarian Fishing (Otto's Grotto & Mount Quidamortem)
+
+- **Fishing Spot NPC IDs (`net.runelite.api.gameval.NpcID`)**:
+  - Otto's Grotto: `NpcID._0_39_54_BRUT_FISHING_SPOT = 1542`.
+  - Mount Quidamortem (Chambers of Xeric exterior): `NpcID._0_19_55_BRUT_FISHING_SPOT = 7323`.
+- **Rods & Bait (`net.runelite.api.gameval.ItemID`)**:
+  - Rods: `ItemID.BRUT_FISHING_ROD`, `ItemID.FISHINGROD_PEARL_BRUT`.
+  - Bait: `ItemID.FEATHER`, `ItemID.FISHING_BAIT`, `ItemID.HUNTING_STRIPY_BIRD_FEATHER`, `ItemID.BRUT_FISH_CUTS`, `ItemID.BRUT_ROE`, `ItemID.BRUT_CAVIAR`.
+- **Leaping Fish (`ItemID`)**:
+  - `ItemID.BRUT_SPAWNING_TROUT`, `ItemID.BRUT_SPAWNING_SALMON`, `ItemID.BRUT_STURGEON`.
+- **Fishing Animations (`net.runelite.api.AnimationID`)**:
+  - `FISHING_OILY_ROD`, `FISHING_POLE_CAST`, `FISHING_BARBARIAN_ROD`, `FISHING_PEARL_BARBARIAN_ROD`, `FISHING_PEARL_BARBARIAN_ROD_2`.
+- **Special Attack Harpoons (`VarPlayerID.SA_ENERGY >= 1000`)**:
+  - `DRAGON_HARPOON`, `INFERNAL_HARPOON`, `CRYSTAL_HARPOON`, `TRAILBLAZER_HARPOON`, `TRAILBLAZER_HARPOON_NO_INFERNAL`, `TRAILBLAZER_RELOADED_HARPOON`, `TRAILBLAZER_RELOADED_HARPOON_NO_INFERNAL`.
+
+---
+
+## 8. Wilderness Slayer & Anti-PK Detection
+
+- **Wilderness Presence**:
+  - Check `client.getVarbitValue(VarbitID.INSIDE_WILDERNESS) == 1` or `Rs2Pvp.getWildernessLevelFrom(worldPoint) > 0`.
+- **Wilderness Level Resolution**:
+  - Parse `InterfaceID.PvpIcons.WILDERNESSLEVEL` widget text (`"Level:\\s*(\\d+)"`) when `!wildyWidget.isHidden()`, falling back to `Rs2Pvp.getWildernessLevelFrom(worldPoint)` (which covers surface Wilderness, Wilderness Slayer Cave, Revenant Caves, and boss caves).
+- **Teleblock Detection**:
+  - `client.getVarbitValue(VarbitID.TELEBLOCK_CYCLES) > 0`.
+- **Attackable Combat Bracket**:
+  - Compare `Math.abs(localCombat - otherCombat) <= Math.max(1, Math.max(localWildy, otherWildy)) + (WorldType.isPvpWorld(client.getWorldType()) ? 15 : 0)`, factoring in `other.isFriend() || other.isClanMember() || other.isFriendsChatMember()`.
+

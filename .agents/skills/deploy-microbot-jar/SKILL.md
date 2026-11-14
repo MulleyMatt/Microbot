@@ -6,7 +6,9 @@ description: >-
 
 # Deploy Microbot Shaded Jar to Jagex Launcher
 
-This skill compiles the latest codebase changes into a Microbot shaded jar (`client-1.13.2-shaded.jar`) and installs it into the local RuneLite installation path (`%LOCALAPPDATA%\RuneLite\`), allowing immediate launching directly from the official **Jagex Launcher**.
+This skill compiles the latest codebase changes into the Microbot shaded jar (`client-*-shaded.jar` under `runelite-client\build\libs\`) and installs it into the local RuneLite installation path (`%LOCALAPPDATA%\RuneLite\`), allowing immediate launching directly from the official **Jagex Launcher**.
+
+> **Automatic End-of-Task Deployment**: At the end of creating or updating a plugin (after compilation and unit tests pass), automatically run [`deploy.ps1`](file:///c:/DEV/Microbot/.agents/skills/deploy-microbot-jar/scripts/deploy.ps1) as long as `RuneLite` is not currently running and locking `%LOCALAPPDATA%\RuneLite\RuneLite.jar`. If `RuneLite` is open, warn the user to close the client first (or pass `-ForceKill` only if the user requests it).
 
 ## Automated Execution
 
@@ -48,9 +50,10 @@ Check `$env:LOCALAPPDATA\RuneLite\`:
 - Back up `config.json` to `config.json.official.bak` if not already present.
 
 ### 4. Copy Shaded Jar
-Copy the newly built shaded jar:
+Resolve the latest shaded jar dynamically and copy it:
 ```powershell
-Copy-Item "runelite-client\build\libs\client-1.13.2-shaded.jar" "$env:LOCALAPPDATA\RuneLite\RuneLite.jar" -Force
+$jar = Get-ChildItem "runelite-client\build\libs\client-*-shaded.jar" | Sort-Object LastWriteTime -Descending | Select-Object -First 1
+Copy-Item $jar.FullName "$env:LOCALAPPDATA\RuneLite\RuneLite.jar" -Force
 ```
 
 ### 5. Verify Launcher Wiring (`config.json`)

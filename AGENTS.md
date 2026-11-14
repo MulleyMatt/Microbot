@@ -2,6 +2,9 @@
 
 RuneLite fork with a hidden always-on plugin hosting automation scripts. Composite Gradle build, Java 11 target (JDK 17+ to develop).
 
+## Upstream Sync (Before Any Work)
+- Before starting any new work planning or coding, run the `.agents/skills/sync-upstream-main/SKILL.md` workflow (`git fetch upstream main`, check `HEAD..upstream/main`, merge `main` into `boss-helper-plugin` while preserving custom UI invariants, test, and push).
+
 ## Build / validate
 - Compile: `./gradlew :client:compileJava`
 - Full: `./gradlew buildAll`

@@ -71,3 +71,13 @@ When multiple alert conditions could occur simultaneously, order them strictly:
 
 ### Immediate Dismissal UX
 Suppress AFK flash immediately when `onMenuOptionClicked` fires with an action ("Chop", "Mine", "Climb", "Bank") so the user is not blinded while the character walks toward the clicked spot.
+
+---
+
+## 3. Boss & Combat Sound Alert Restraint
+
+- **Do NOT fire sound alerts on routine attack-style rotations** (e.g., Spindel's 8-Ranged / 8-Magic phase swap) when auto-prayer or the HUD overlay already handles the transition—frequent chimes cause alert fatigue.
+- **Reserve boss audio alerts for actionable emergencies**:
+  - **Low Prayer** (`<= threshold`, default `10` prayer points) with a tick-based repeat cooldown (e.g., every 8 ticks) that resets immediately once the player restores Prayer above threshold.
+  - **PKer Threat Detected** entering the cave or Wilderness combat bracket.
+  - **Unprotected Special Attack Windup** requiring immediate player movement or manual prayer correction (e.g., Muspah Charged Magic without `Protect from Magic`, or Center Shockwave when not on a safe tile).

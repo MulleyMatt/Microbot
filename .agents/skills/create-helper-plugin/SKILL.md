@@ -1,24 +1,23 @@
 ---
 name: create-helper-plugin
 description: >-
-  Guides the creation of zero-automation, interactive helper and overlay plugins in Microbot (for PvM, skilling, supply prep, Grand Exchange quick-filters, and Bank filtering) where the player retains 100% manual control over movement, combat, and actions. Use whenever asked to create a helper, guide, or overlay plugin.
+  Guides the creation of interactive helper and overlay plugins in Microbot (for PvM, skilling, supply prep, Grand Exchange quick-filters, Bank filtering, and optional client-thread-safe micro-assists like auto-prayer, auto-thrall, anti-PK seed pod, and left-click menu swaps) where the player retains manual control over movement, combat, and core actions. Use whenever asked to create a helper, guide, or overlay plugin.
 ---
 
-# Create Helper Plugin Skill (Zero-Automation Interactive Guide)
+# Create Helper Plugin Skill (Interactive Guide & Micro-Assists)
 
-This skill provides the architectural framework, design patterns, and code templates for creating **100% manual, zero-automation helper plugins** in Microbot.
+This skill provides the architectural framework, design patterns, and code templates for creating **interactive helper plugins** in Microbot.
 
-These plugins eliminate cognitive load—guiding the player on what supplies to withdraw, what to buy at the GE, what teleports to take, and where to click on screen—while leaving **100% of player movement, combat, and interactions in the player's hands**.
+These plugins eliminate cognitive load—guiding the player on what supplies to withdraw, what to buy at the GE, what teleports to take, and where to click on screen—while keeping movement, positioning, target selection, eating, and banking in the player's hands, optionally paired with **opt-in, client-thread-safe micro-assists** when requested.
 
 ---
 
 ## 1. Non-Negotiable Core Rules
 
-1. **Zero Botting / Zero Automation**:
-   - **NEVER** use `Rs2Walker.walkTo(...)` or movement automation.
-   - **NEVER** use interaction loops (`Rs2GameObject.interact(...)`, `Rs2Npc.interact(...)`, `Rs2Inventory.interact(...)`, `Rs2Prayer.toggle(...)`).
-   - **NEVER** place automated GE offers (`Rs2GrandExchange.buyItem(...)`).
-   - The user physically moves the character, clicks targets, sips potions, switches prayers, and places GE offers.
+1. **Manual Core Control + Opt-In Micro-Assists**:
+   - **NEVER** build full-script botting loops: no `Rs2Walker.walkTo(...)`, no automated combat/skilling interaction loops (`Rs2GameObject.interact(...)`, `Rs2Npc.interact(...)`), and no automated GE offers (`Rs2GrandExchange.buyItem(...)`).
+   - **Opt-In Micro-Assist Toggles (Allowed when requested)**: Plugins may include configurable toggles for **Auto-Switch Prayers** (`Rs2Prayer.toggle(Rs2PrayerEnum)`), **Auto-Cast Thralls** (`MenuAction.CC_OP`), **Anti-PK Auto Royal Seed Pod** (`MenuAction.CC_OP` on `InterfaceID.Inventory.ITEMS`), and **Left-Click Menu Entry Swaps** (`@Subscribe(priority = -1) onPostMenuSort`).
+   - **NEVER** call `Rs2Inventory.interact(...)` or `Rs2Magic.cast(...)` on the client thread — they switch tabs and call `sleepUntil(...)`, freezing or throwing on the client thread. Use direct `MenuAction.CC_OP` via `Microbot.doInvoke(...)` instead (see [`micro-assists-and-menu-swaps.md`](file:///c:/DEV/Microbot/.agents/skills/create-helper-plugin/references/micro-assists-and-menu-swaps.md)).
 2. **Microbot Code Standards**:
    - Never instantiate caches or queryables directly — always use `Microbot.getRs2XxxCache().query()` or `.getStream()`.
    - Never block or sleep on the client thread.
@@ -70,23 +69,28 @@ Production-ready templates are located in `templates/`:
 
 When implementing advanced features, consult the dedicated guides in `references/` instead of re-reading large source files:
 
+- [Micro-Assists & Menu Swaps Guide](file:///c:/DEV/Microbot/.agents/skills/create-helper-plugin/references/micro-assists-and-menu-swaps.md): Client-thread-safe auto-prayer, Arceuus thrall casting, Anti-PK Royal Seed Pod, and left-click `onPostMenuSort` menu swapping.
 - [Grand Exchange CS2 Search Guide](file:///c:/DEV/Microbot/.agents/skills/create-helper-plugin/references/grand-exchange-search.md): Script 750/752 lifecycle, pre-computation, and why CS2 is not reentrant.
 - [Bank Filtering Guide](file:///c:/DEV/Microbot/.agents/skills/create-helper-plugin/references/bank-filtering.md): Scripts 276, 277, 279, `ScriptCallbackEvent` priority `-1`, and layout packing.
-- [Alerts & Sound Guide](file:///c:/DEV/Microbot/.agents/skills/create-helper-plugin/references/alerts-and-sound.md): `Rs2SoundAlert` utility, sound debouncing, and sinusoidal screen pulse formulas.
-- [State Machines & Step Tracking](file:///c:/DEV/Microbot/.agents/skills/create-helper-plugin/references/state-machines.md): Multi-signal transitions, animation flicker debouncing, and batch configurations.
-- [Game Entities & Domain Gotchas](file:///c:/DEV/Microbot/.agents/skills/create-helper-plugin/references/game-entities-and-gotchas.md): Verified object IDs (Redwood trees, ladders, chests), farming teleports, and chat filtering.
+- [Alerts & Sound Guide](file:///c:/DEV/Microbot/.agents/skills/create-helper-plugin/references/alerts-and-sound.md): `Rs2SoundAlert` utility, sound debouncing, boss alert restraint, and sinusoidal screen pulse formulas.
+- [State Machines & Step Tracking](file:///c:/DEV/Microbot/.agents/skills/create-helper-plugin/references/state-machines.md): Multi-signal transitions, animation flicker debouncing, optional consumables, and region checks vs cached widgets.
+- [Game Entities & Domain Gotchas](file:///c:/DEV/Microbot/.agents/skills/create-helper-plugin/references/game-entities-and-gotchas.md): Verified object/NPC/item IDs (Redwoods, Farming, Muspah, MTA, Spindel, Barbarian Fishing, Wildy Slayer) and chat filtering.
 
 ---
 
 ## 5. Plugin Creation Workflow
 
-1. **Clarify Requirements**: Confirm activities, items, teleports, and visual prompts needed. Reaffirm 100% manual control.
-2. **Scaffold Components**: Use templates from `templates/` for GE, Bank, and Overlays.
+0. **Sync Upstream `main` First**: Before planning or writing code for any new plugin or update, run the [`sync-upstream-main`](file:///c:/DEV/Microbot/.agents/skills/sync-upstream-main/SKILL.md) workflow so the workspace has the latest upstream `main` changes.
+1. **Clarify Requirements**: Confirm activities, items, teleports, visual prompts, and any opt-in micro-assist toggles (auto-prayer, auto-thrall, anti-PK seed pod, left-click swaps) needed.
+2. **Scaffold Components**: Use templates from `templates/` for GE, Bank, and Overlays, and `references/micro-assists-and-menu-swaps.md` for client-thread-safe assists.
 3. **Audio Notifications**: Always use `Rs2SoundAlert.triggerAlert()`. Never use `Toolkit.getDefaultToolkit().beep()`.
-4. **Registration**: Tag the plugin with `"user"` in `@PluginDescriptor(tags = {"user", ...})` so it automatically appears in the UI's "My Plugins" tab.
-5. **Unit Tests**: Add tests under `runelite-client/src/test/java/...` validating supply math and state progression.
-6. **Compile & Deploy**:
-   ```powershell
-   ./gradlew :client:compileJava
-   powershell -ExecutionPolicy Bypass -File .agents/skills/deploy-microbot-jar/scripts/deploy.ps1
-   ```
+4. **Registration**:
+   - Always include `"user"` in `@PluginDescriptor(tags = {"user", ...})` so the plugin appears in the UI's **"My Plugins"** tab. (Do NOT rely on `"helper"` alone — external Plugin Hub helpers use `"helper"` and belong in **"Installed"**.)
+   - For passive background utility plugins that should stay locked on (like `CacheWarningFilterPlugin` and `AgentServerPlugin`), set `enabledByDefault = true, alwaysOn = true` so `AlwaysOnPlugins.isLocked(...)` displays them as `"Always on"` top-level rows in **"My Plugins"**.
+5. **Unit Tests**: Add tests under `runelite-client/src/test/java/...` validating supply math, state progression, and any pure micro-assist / menu-swap helpers.
+6. **Compile, Test & Auto-Deploy**:
+   - Run `:client:compileJava` and `:client:runUnitTests --tests ...`.
+   - Once tests pass, **automatically deploy** the shaded jar (as long as `RuneLite.exe` is not running and locking `RuneLite.jar`; if it is running, notify the user to close RuneLite and run `deploy.ps1`):
+     ```powershell
+     powershell -ExecutionPolicy Bypass -File .agents/skills/deploy-microbot-jar/scripts/deploy.ps1
+     ```

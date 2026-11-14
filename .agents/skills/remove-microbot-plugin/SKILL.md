@@ -43,7 +43,7 @@ if (Test-Path "runelite-client/src/test/java/net/runelite/client/plugins/microbo
 ```
 
 ### Step 3: Clean Legacy UI Registrations
-If the plugin was explicitly named in [`MicrobotPluginListPanel.java`](file:///c:/DEV/Microbot/runelite-client/src/main/java/net/runelite/client/plugins/microbot/ui/MicrobotPluginListPanel.java), remove its name or class check from `isUserBuiltPluginName(...)` / `isUserBuiltPlugin(...)`. (Plugins using the automatic `"helper"` or `"user"` tags require no UI edits).
+If the plugin was explicitly named in [`MicrobotPluginListPanel.java`](file:///c:/DEV/Microbot/runelite-client/src/main/java/net/runelite/client/plugins/microbot/ui/MicrobotPluginListPanel.java), remove its name or class check from `isUserBuiltPluginName(...)` / `isUserBuiltPlugin(...)` (note that `MicrobotPluginListPanel` matches `"user"` / `"userplugin"` tags, NOT `"helper"`, plus explicit class/name entries). If a legacy hardcoded plugin name is removed, also update any corresponding assertions in [`MicrobotPluginListPanelModeTest.java`](file:///c:/DEV/Microbot/runelite-client/src/test/java/net/runelite/client/plugins/microbot/ui/MicrobotPluginListPanelModeTest.java).
 
 ---
 

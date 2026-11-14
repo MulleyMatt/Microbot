@@ -43,3 +43,20 @@ When tracking combat or skilling activity (chopping, mining, fishing):
 ## 3. Configurable Batching vs Single-Run
 
 Never hardcode run counts (e.g. assuming 5 runs of supplies). Always provide a configuration setting (`runsToPurchase()` or `batchCount()`) defaulting to 1 so players with limited inventory or capital are not blocked by the supply calculator.
+
+---
+
+## 4. Optional Consumables Must Never Block Phase Progression
+
+Distinguish clearly between **hard requirements** (tools, staves, required runes, quest/diary items) and **optional consumables** (food counts, stamina/prayer potion counts):
+- Hard requirements block transition out of `PREPARE_SUPPLIES` until met.
+- Optional consumables should be shown in the supply checklist / GE filter, **never** trap the state machine in `PREPARE_SUPPLIES` when the player brings fewer pieces of food or skips an optional potion (e.g., bringing 2 Sharks instead of 4 in MTA).
+
+---
+
+## 5. Strict Region Verification vs. Cached Widgets
+
+OSRS often keeps closed room/minigame interface widgets cached in memory after a player teleports or walks out (for example, Mage Training Arena room widgets remain non-null after leaving a chamber):
+- **Never** rely solely on `widget != null` or `!widget.isHidden()` to decide whether the player is inside a room.
+- Always require strict `WorldPoint.getRegionID()` (and `plane`, when floors share a region ID like MTA region `13462`) checks alongside any widget checks.
+- Provide a clean outside-room fallback step (e.g., `"Go to MTA & Choose a Room"`) whenever the player is not inside an active room region.
