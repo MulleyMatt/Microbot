@@ -139,3 +139,23 @@ This reference catalogs verified game object IDs, widget IDs, and gotchas discov
 - **Attackable Combat Bracket**:
   - Compare `Math.abs(localCombat - otherCombat) <= Math.max(1, Math.max(localWildy, otherWildy)) + (WorldType.isPvpWorld(client.getWorldType()) ? 15 : 0)`, factoring in `other.isFriend() || other.isClanMember() || other.isFriendsChatMember()`.
 
+---
+
+## 9. While Guthix Sleeps (Surok Magis, Balance Elemental, Tormented Demons)
+
+- **Boss 1 — Surok Magis**:
+  - Boss NPC IDs: `NpcID.DARK_SQUALL_COMBAT = 13482`, `NpcID.WGS_SUROK = 13548`, `NpcID.WGS_SUROK_TRANSITION = 3205`; post-fight unconscious body: `NpcID.WGS_SUROK_UNCONSCIOUS = 13551`.
+  - Summoned Warriors: `NpcID.DARK_SQUALL_AGILE_MINION = 13483` (Bind/Snare/Entangle), `NpcID.DARK_SQUALL_STRONG_MINION = 13484` (Weaken/Enfeeble).
+  - Raised Elemental Surge Orbs (cast opposite element): `NpcID.EARTH_SURGE_RAISED = 13505` (-> Air), `WATER_SURGE_RAISED = 13506` (-> Fire), `FIRE_SURGE_RAISED = 13507` (-> Water), `WIND_SURGE_RAISED = 13508` (-> Earth).
+  - Lit Explosive: `ItemID.WGS_BOMB = 29573` (Telegrab on ground -> Alchemise in inventory before detonation).
+  - Required Dark Squall Robes: `ItemID.WGS_DARK_SQUALL_HOOD = 29566`, `WGS_DARK_SQUALL_ROBE_TOP = 29568`, `WGS_DARK_SQUALL_ROBE_BOTTOM = 29570`; Post-fight Teleorb: `WGS_LUCIEN_TELEORB = 29535` (`WGS_COM_TELE_ORB = 29536`, `WGS_COM_TELE_ORB_2 = 29537`).
+- **Boss 2 — Balance Elemental (750 HP)**:
+  - Boss NPC IDs: `NpcID.WGS_BALANCE_ELEMENTAL = 13528`, dying `NpcID.WGS_BALANCE_ELEMENTAL_DYING = 13529`.
+  - Read head colour via stance transitions/idle/walk/attack animations & spotanims (`WATER` = Blue -> `Protect from Magic`, `FIRE` = Orange -> `Protect from Missiles`, `AIR` = White -> `Protect from Melee`); ignore visual attack animations since melee looks like a projectile.
+  - Decode boss overhead prayers via `NPC.getOverheadSpriteIds()` (handling both combined `HeadIcon` ordinals like `RANGE_MAGE` and multi-entry arrays) to prompt the remaining unprayed style (`CRUSH` / `HEAVY RANGED` / `MAGIC`).
+- **Boss 3 — Tormented Demons**:
+  - NPC IDs: `TORMENTED_DEMON_1 = 13599`, `TORMENTED_DEMON_2 = 13600`, `TORMENTED_DEMON_QUEST_1 = 13601`, `TORMENTED_DEMON_QUEST_2 = 13602`.
+  - Attack Animations (`AnimationID`) & Projectiles (`SpotanimID`): Magic (`LUC2_UNDEAD_DEMON_FIREY_BALLS = 11388`, proj `2853`), Ranged (`LUC2_UNDEAD_DEMON_SPARE_RIBS = 11389`, proj `2857`), Melee (`LUC2_UNDEAD_DEMON_MELEE = 11392`), Death (`LUC2_UNDEAD_DEMON_DEATH = 11394`).
+  - Fire Bomb / Shield / Defenceless: `AnimationID.LUC2_UNDEAD_DEMON_EXPLOSION_FIRE = 11387`, `SpotanimID.LUC2_UNDEAD_DEMON_FIREBALL_LARGE_PROJ = 2855`, impacts `2846`/`2856`, shield down `2849`, shield restore `2850`/`4032`, flames extinguished (100% accuracy) `LUC2_UNDEAD_DEMON_SHIELD_DEPLETE_SPOT = 4033`; Stone of Jas quest boost: `VarbitID.WGS_STONE_OF_JAS_BOOST = 10934`.
+  - Post-Quest Temple Farming IDs: Regions `16196, 16197, 16452, 16453`; Multi-combat counter varbit `VarbitID.TD_MULTIWAY_INDICATOR = 10960` (`1` = Single, `2` = Double, `3` = Triple); Uniques `ItemID.TORMENTED_SYNAPSE = 29580`, `ItemID.BONE_CLAW = 29574` (drop), `ItemID.BONE_CLAWS = 29577` (combined); Temple scroll `ItemID.TELEPORTSCROLL_GUTHIXIAN_TEMPLE = 29684`; Smouldering drops `SMOULDERING_HEART = 29583`, `SMOULDERING_PILE_OF_FLESH = 29585`, `SMOULDERING_GLAND = 29587`.
+
